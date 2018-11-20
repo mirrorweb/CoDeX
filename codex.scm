@@ -5,7 +5,7 @@
 
 (define (cdx-reader file)
   (define (process-columns columns)
-    ; Return a CDX line as a hash-table
+    ; Return a list of cdx lines as hash-tables
     (define hs '("SURT" "DATE" "URL" "MIMETYPE" "RESPONSE_CODE" "DIGEST" "REDIRECT" "META_TAGS" "LENGTH" "OFFSET" "WARC_FILE" "ORIG_LENGTH" "ORIG_OFFSET" "ORIG_WARC_FILE"))
     (let loop ((data (make-hash-table)) (hs hs) (cols columns))
       (if (not (null? hs))
@@ -14,11 +14,6 @@
           (loop data (cdr hs) (cdr cols)))
         data)))
 
-  (define (process-line line)
-    ; Return a list of cdx lines as hash-tables
-    (let ((columns (string-split line)))
-      (process-columns columns)))
-
   (call-with-input-file
     file
     (lambda (input-port)
@@ -26,9 +21,8 @@
         (if (not (eof-object? line))
           (if (equal? (car (string-split line)) "CDX")
             (loop (read-line input-port) objs)
-            (loop (read-line input-port) (cons (process-line line) objs)))
+            (loop (read-line input-port) (cons (process-columns (string-split line)) objs)))
           (reverse objs))))))
-
 
 (for-each
   (lambda (dict) (hash-table-for-each dict (lambda (k v) (print k ": " v))))

@@ -23,13 +23,8 @@
             (loop (read-line input-port) (cons (process-columns (string-split line)) objs)))
           (reverse objs))))))
 
-; Print data
-(for-each
-  (lambda (dict)
-    (hash-table-walk dict (lambda (k v) (print k " " v))))
-  (cdx-reader "sample_archive/cdx/MW-miskatonicuniversity-e9b4b8de-2739-4417-98eb-7a3f3f676e68-000-20181119155108-neilmunro.herokuapp.com-00000.cdx"))
-
 (define (cdx-find dict)
+  (hash-table-walk dict (lambda (k v) (print k " " v)))
   (print dict))
 
 (define (cdx-find-all dict)
@@ -37,3 +32,15 @@
 
 (define (cdx-find-latest dict)
   (print dict))
+
+; Print data
+(for-each
+  (lambda (dict)
+    (hash-table-walk dict (lambda (k v) (print k " " v))))
+  (cdx-reader "sample_archive/cdx/MW-miskatonicuniversity-e9b4b8de-2739-4417-98eb-7a3f3f676e68-000-20181119155108-neilmunro.herokuapp.com-00000.cdx"))
+
+(print "")
+
+(cdx-find (alist->hash-table (cons (cons SURT: "com,herokuapp,neilmunro,www)") '())))
+(cdx-find-all (alist->hash-table (cons (cons SURT: "com,herokuapp,neilmunro,www)") '())))
+(cdx-find-latest (alist->hash-table (cons (cons SURT: "com,herokuapp,neilmunro,www)") '())))

@@ -1,46 +1,46 @@
-(import (chicken io))
-(import (chicken keyword))
-(import (chicken string))
-(import (srfi 13))
-(import (srfi 69))
+(module codex (cdx-find cdx-latest cdx-all)
+  (import (chicken io))
+  (import (chicken keyword))
+  (import (chicken string))
+  (import (srfi 13))
+  (import (srfi 69))
+  (import (json))
+  (import scheme)
+  (import ht)
 
-(define (cdx-reader file)
-  (define (process-columns columns)
-    ; Return a list of cdx lines as hash-tables
-    (define hs '(SURT: DATE: URL: MIMETYPE: RESPONSE_CODE: DIGEST: REDIRECT: META_TAGS: LENGTH: OFFSET: WARC_FILE: ORIG_LENGTH: ORIG_OFFSET: ORIG_WARC_FILE:))
-    (let loop ((data '()) (hs hs) (cols columns))
-      (if (not (and (null? hs) (null? cols)))
-        (loop (cons (cons (car hs) (car cols)) data) (cdr hs) (cdr cols))
-        (alist->hash-table data))))
+  (define (cdx-reader file)
+    (define (process-cdx-record data)
+      (alist->hash-table
+        (map
+          cons
+          '(SURT: DATE: URL: MIMETYPE: STATUS_CODE: DIGEST: REDIRECT: META_TAGS: LEN: OFFSET: WARC: ORIG_LEN: ORIG_OFFSET: ORIG_WARC:)
+          data)))
 
-  (call-with-input-file
-    file
-    (lambda (input-port)
-      (let loop ((line (read-line input-port)) (objs '()))
-        (if (not (eof-object? line))
-          (if (equal? (car (string-split line)) "CDX")
-            (loop (read-line input-port) objs)
-            (loop (read-line input-port) (cons (process-columns (string-split line)) objs)))
-          (reverse objs))))))
+    (call-with-input-file
+      file
+      (lambda (input-port)
+        (let loop ((line (read-line input-port)) (objs '()))
+          (if (not (eof-object? line))
+            (if (equal? (car (string-split line)) "CDX")
+              (loop (read-line input-port) objs)
+              (loop (read-line input-port) (cons (process-cdx-record (string-split line)) objs)))
+            objs)))))
 
-(define (cdx-find dict)
-  (hash-table-walk dict (lambda (k v) (print k " " v)))
-  (print dict))
+  (define (cdx-find file dict)
+    (let loop ((data (cdx-reader file)) (results '()))
+      (if (null? data)
+        results
+        (if (hash-table-contains? (car data) dict)
+          (loop (cdr data) (cons (car data) results))
+          (loop (cdr data) results)))))
 
-(define (cdx-find-all dict)
-  (print dict))
+  (define (cdx-latest file dict)
+    (let loop ((data (cdx-find file dict)) (result (alist->hash-table (map cons '(DATE:) '("0")))))
+      (if (and (null? data) (not (equal? (hash-table-ref result DATE:) 0)))
+        result
+        (if (> (string->number (hash-table-ref (car data) DATE:)) (string->number (hash-table-ref result DATE:)))
+          (loop (cdr data) (car data))
+          (loop (cdr data) result)))))
 
-(define (cdx-find-latest dict)
-  (print dict))
-
-; Print data
-(for-each
-  (lambda (dict)
-    (hash-table-walk dict (lambda (k v) (print k " " v))))
-  (cdx-reader "sample_archive/cdx/MW-miskatonicuniversity-e9b4b8de-2739-4417-98eb-7a3f3f676e68-000-20181119155108-neilmunro.herokuapp.com-00000.cdx"))
-
-(print "")
-
-(cdx-find (alist->hash-table (cons (cons SURT: "com,herokuapp,neilmunro,www)") '())))
-(cdx-find-all (alist->hash-table (cons (cons SURT: "com,herokuapp,neilmunro,www)") '())))
-(cdx-find-latest (alist->hash-table (cons (cons SURT: "com,herokuapp,neilmunro,www)") '())))
+  (define (cdx-all file)
+    (cdx-reader file)))

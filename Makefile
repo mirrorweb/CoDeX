@@ -2,10 +2,16 @@
 .DEFAULT: build
 
 build:
-	@csc codex.scm
+	@csc -sJ ht.scm
+	@csc -sJ codex.scm
+	@csc main.scm
 
 run:
-	@./codex
+	@./main
 
 clean:
-	@rm -rf codex codex.c
+	@rm codex.import.scm
+	@rm ht.import.scm
+	@rm codex.so
+	@rm ht.so
+	@rm main
